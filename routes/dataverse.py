@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from pyDataverse.api import NativeApi, DataAccessApi
-
+from flask_jwt_extended import jwt_required
 
 dataverse_router = Blueprint('dataverses', __name__)
 
@@ -32,6 +32,7 @@ def __explore_dataset(dataset_data_list, datafiles_extensions):
 
 
 @dataverse_router.route('/', methods=["GET"])
+@jwt_required()
 def retrieve_dataverses():
     dataverse_url = request.args['url']
     filter_by = request.args['filter_by'] if 'filter_by' in request.args else []
