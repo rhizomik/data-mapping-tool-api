@@ -35,10 +35,11 @@ def __explore_dataset(dataset_data_list, datafiles_extensions):
 @jwt_required()
 def retrieve_dataverses():
     dataverse_url = request.args['url']
+    name = request.args['name']
     filter_by = request.args['filter_by'] if 'filter_by' in request.args else []
     filter_by.split(',')
     dataverse_api = NativeApi(dataverse_url)
 
-    tree = dataverse_api.get_children("UDL", children_types=["datasets", "datafiles"])
+    tree = dataverse_api.get_children(name, children_types=["datasets", "datafiles"])
     response = __explore_dataset(tree, filter_by)
     return jsonify(response), 200
