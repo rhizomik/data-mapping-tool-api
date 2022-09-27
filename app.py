@@ -44,5 +44,5 @@ def create_app():
     app.register_blueprint(users_router, url_prefix='/users')
     app.register_blueprint(ontology_router, url_prefix='/ontology')
     app.register_blueprint(mapping_router, url_prefix='/mapping')
-    app.register_blueprint(dataverse_router, url_prefix='/dataverse')
+    app.register_blueprint(dataverse_router, url_prefix='/dataverses')
     return app
