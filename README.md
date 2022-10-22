@@ -37,7 +37,7 @@ If you do not have a MongoDB, you can deploy it using `docker-compose up -d`.
 
     MONGO_URI=
 
-    ADMIN_EMAL=
+    ADMIN_EMAIL=
     ADMIN_PASSWORD=
 
 ### ¿ How to Generate Secret Key ?
