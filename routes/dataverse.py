@@ -6,6 +6,7 @@ from pyDataverse.api import NativeApi, DataAccessApi
 from pyDataverse.utils import dataverse_tree_walker
 from werkzeug.utils import secure_filename
 
+from routes.files import __save_file
 from routes.ontology import _create_ontology_from_file
 
 dataverse_router = Blueprint('dataverses', __name__)
@@ -21,6 +22,8 @@ def retrieve_dataverses():
     dataverse_api = NativeApi(dataverse_url)
     tree = dataverse_api.get_children(name, children_types=["datasets", "datafiles", "dataverses"])
     dataverses, datasets, datafiles = dataverse_tree_walker(tree)
+    if len(filter_by) > 0:
+        datafiles = [f for f in datafiles if f['filename'].split('.')[-1] in filter_by]
     response = {
         'dataverses': dataverses,
         'datafiles': datafiles,
@@ -98,4 +101,29 @@ def retrieve_dataverseas():
 
         with open(file_path, "rb") as f:
             _create_ontology_from_file(f, datafile_metadata['label'], identity, ontology_name)
+    return jsonify(successful=True)
+
+
+@dataverse_router.route('/file/', methods=["GET"])
+@jwt_required()
+def upload_dataverse_file():
+    identity = get_jwt_identity()
+
+    dataverse_url = request.args['url']
+    id_datafile = request.args['id']
+    data_api = DataAccessApi(dataverse_url)
+    dataverse_api = NativeApi(dataverse_url)
+
+    datafile_metadata = json.loads(dataverse_api
+                                   .get_datafile_metadata(id_datafile, False)
+                                   .content
+                                   .decode('utf8').replace("'", '"'))
+    response = data_api.get_datafile(id_datafile)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file_path = temp_dir + '/' + secure_filename(datafile_metadata['label'])
+        with open(file_path, "wb") as f:
+            f.write(response.content)
+        with open(file_path, "rb") as f:
+            __save_file(f, datafile_metadata['label'], identity)
     return jsonify(successful=True)

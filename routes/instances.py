@@ -74,6 +74,7 @@ def edit_instance(id):
             instance.update(**request.json)
             try:
                 instance = InstanceModel(**instance)
+                print(instance)
                 mongo.db.instances.update_one({"_id": ObjectId(id)}, {"$set": instance.dict()})
                 return jsonify(successful=f"The ref.: {id} has been updated successfully.",
                                instance=instance.dict())

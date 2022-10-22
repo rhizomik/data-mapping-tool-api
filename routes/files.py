@@ -13,6 +13,11 @@ files_router = Blueprint('files', __name__)
 ALLOWED_EXTENSIONS = ['csv']
 
 
+def __save_file(file, filename, identity):
+    if file and allowed_files(filename=filename, allowed_extensions=ALLOWED_EXTENSIONS):
+        mongo.save_file(filename=filename, fileobj=file, kwargs={"owner": identity})
+
+
 @files_router.route("/upload", methods=["POST"])
 @jwt_required()
 def upload_file():
@@ -20,14 +25,10 @@ def upload_file():
         return jsonify(error="No file attached."), 400
 
     file = request.files['file']
+    identity = get_jwt_identity()
+    __save_file(file, file.filename,identity)
 
-    if file and allowed_files(filename=file.filename, allowed_extensions=ALLOWED_EXTENSIONS):
-        identity = get_jwt_identity()
-        mongo.save_file(filename=file.filename, fileobj=file, kwargs={"owner": identity})
-
-        return jsonify(successful=True)
-
-    return jsonify(error="No file attached."), 400
+    return jsonify(successful=True)
 
 
 @files_router.route("/download/<filename>", methods=["GET"])
