@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from database import mongo
 from models.ontology import OntologyModel, VisibilityEnum
-from utils import get_user_by_username, parse_json, remove_file, get_file, define_ontology
+from utils.utils import get_user_by_username, parse_json, remove_file, get_file, define_ontology
 
 ontology_router = Blueprint('ontology', __name__)
 
@@ -117,7 +117,7 @@ def get_ontologies():
         "$or": [{"visibility": VisibilityEnum.public}, {"createdBy": identity}]}
     ontologies = mongo.db.ontologies.find(query)
 
-    return jsonify(data=parse_json(ontologies))
+    return jsonify(data=parse_json(list(ontologies)))
 
 
 @ontology_router.route("/<id>", methods=["GET"])
@@ -167,8 +167,8 @@ def remove_ontology(id):
     ontology_instance = mongo.db.ontologies.find_one(query)
 
     if ontology_instance:
+        mongo.db.ontologies.delete_one(query)
         remove_file(ontology_instance['file_id'])
-        mongo.db.ontologies.delete_one({"_id": ObjectId(id)})
         return jsonify()
 
     return jsonify(), 400
