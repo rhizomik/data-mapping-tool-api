@@ -87,6 +87,17 @@ def get_ontology_view(id):
     return jsonify(classes=classes, relations=relations)
 
 
+def _create_ontology_from_file(file, filename, identity, ontology_name):
+
+    file_id = mongo.save_file(filename=filename, fileobj=file, kwargs={"owner": identity})
+
+    ontology_model = OntologyModel(filename=filename, file_id=str(file_id), ontology_name=ontology_name,
+                                   createdBy=identity, createdAt=datetime.datetime.utcnow(),
+                                   visibility=VisibilityEnum.private)
+
+    mongo.db.ontologies.insert_one(ontology_model.dict())
+
+
 @ontology_router.route("/<ontology>", methods=["POST"])
 @jwt_required()
 def create_ontology(ontology):
@@ -96,13 +107,7 @@ def create_ontology(ontology):
         return jsonify(error="No file attached."), 400
 
     file = request.files['file']
-    file_id = mongo.save_file(filename=file.filename, fileobj=file, kwargs={"owner": identity})
-
-    ontology_model = OntologyModel(filename=file.filename, file_id=str(file_id), ontology_name=ontology,
-                                   createdBy=identity, createdAt=datetime.datetime.utcnow(),
-                                   visibility=VisibilityEnum.private)
-
-    mongo.db.ontologies.insert_one(ontology_model.dict())
+    _create_ontology_from_file(file, file.filename, identity, ontology)
 
     return jsonify(successful=True)
 

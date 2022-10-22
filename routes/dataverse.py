@@ -1,9 +1,12 @@
 import json
 import tempfile
 from flask import Blueprint, jsonify, request, send_file
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from pyDataverse.api import NativeApi, DataAccessApi
 from pyDataverse.utils import dataverse_tree_walker
 from werkzeug.utils import secure_filename
+
+from routes.ontology import _create_ontology_from_file
 
 dataverse_router = Blueprint('dataverses', __name__)
 
@@ -59,6 +62,7 @@ def download_datafile():
     id_datafile = request.args['id']
     data_api = DataAccessApi(dataverse_url)
     dataverse_api = NativeApi(dataverse_url)
+
     datafile_metadata = json.loads(dataverse_api
                                    .get_datafile_metadata(id_datafile, False)
                                    .content
@@ -70,3 +74,28 @@ def download_datafile():
         with open(file_path, "wb") as f:
             f.write(response.content)
         return send_file(file_path, attachment_filename=datafile_metadata['label'])
+
+
+@dataverse_router.route('/ontology/', methods=["GET"])
+@jwt_required()
+def retrieve_dataverseas():
+    identity = get_jwt_identity()
+    dataverse_url = request.args['url']
+    id_datafile = request.args['id']
+    ontology_name = request.args['ontology_name']
+    data_api = DataAccessApi(dataverse_url)
+    dataverse_api = NativeApi(dataverse_url)
+
+    datafile_metadata = json.loads(dataverse_api
+                                   .get_datafile_metadata(id_datafile, False)
+                                   .content
+                                   .decode('utf8').replace("'", '"'))
+    response = data_api.get_datafile(id_datafile)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file_path = temp_dir + '/' + secure_filename(datafile_metadata['label'])
+        with open(file_path, "wb") as f:
+            f.write(response.content)
+
+        with open(file_path, "rb") as f:
+            _create_ontology_from_file(f, datafile_metadata['label'], identity, ontology_name)
+    return jsonify(successful=True)
