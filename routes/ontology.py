@@ -74,6 +74,16 @@ def get_object_properties(id, property_type):
              "domain": str(i.domain)[1:-1]} for i in properties])
 
 
+def applicable_domain(prop, domains):
+    if len(prop.domain) > 0:
+        if isinstance(prop.domain[0], Or):
+            coincidences = [cls for cls in prop.domain[0].Classes if str(cls) in domains]
+            return len(coincidences) > 0
+        elif isinstance(prop.domain[0], ThingClass):
+            return str(prop.domain[0]) in domains
+    return True
+
+
 @ontology_router.route("/<id>/classes/relations", methods=["POST"])
 @jwt_required()
 def get_relations(id):
