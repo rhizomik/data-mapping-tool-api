@@ -49,7 +49,7 @@ def get_columns(filename):
     if has_access:
         file = mongo.send_file(filename=filename)
         file_str = file.response.file.read().decode('utf-8')
-        df = pd.read_csv(StringIO(file_str), sep=',')
+        df = pd.read_csv(StringIO(file_str), sep=None)
         df = df.astype(object).replace(np.nan, 'None')
         return jsonify(columns=list(df.columns), sample=df.head(25).to_dict(orient="records"))
     return jsonify(error="No access to file"), 401
