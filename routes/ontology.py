@@ -13,6 +13,7 @@ import tempfile
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from owlready2 import rdfs_subclassof, Or, ThingClass
 
 from database import mongo
 from models.ontology import OntologyModel, VisibilityEnum
@@ -59,7 +60,11 @@ def get_object_properties(id, property_type):
 
     if 'classes' in request.args:
         classes = request.args['classes'].split(',')
-        properties = [elem for elem in properties if str(elem.domain)[1:-1] in classes]
+        domains = set(classes)
+        for stmt in ontology.get_triples(s=None, p=rdfs_subclassof, o=None):
+            if str(ontology._get_by_storid(stmt.__getitem__(0))) in classes:
+                domains.add(str(ontology._get_by_storid(stmt.__getitem__(2))))
+        properties = [prop for prop in properties if applicable_domain(prop, domains)]
 
     return jsonify(
         data=[
