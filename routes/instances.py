@@ -72,9 +72,15 @@ def edit_instance(id):
 
         if instance:
             instance.update(**request.json)
+
+            for _class in instance['classes_to_map']:
+                if 'mapping' not in instance:
+                    instance.update({"mapping": {}})
+                instance['mapping'].update(
+                    {_class: {"status": False, "fileSelected": instance['filenames'][0], "columns": {}}})
+
             try:
                 instance = InstanceModel(**instance)
-                print(instance)
                 mongo.db.instances.update_one({"_id": ObjectId(id)}, {"$set": instance.dict()})
                 return jsonify(successful=f"The ref.: {id} has been updated successfully.",
                                instance=instance.dict())
@@ -112,11 +118,14 @@ def init_instance_ontology(id):
     query = {"_id": ObjectId(id)} if 'Admin' in user['roles'] else {"_id": ObjectId(id), "createdBy": identity}
     instance = mongo.db.instances.find_one(query)
 
-    ontology = define_ontology(request.json['ontology_id'])
+    suggest_ontology = request.json['suggest_ontology']
+    if not suggest_ontology:
+        ontology = define_ontology(request.json['ontology_id'])
 
     if instance:
-        classes = [str(i) for i in list(ontology.classes())]
-        relations = ontology.object_properties()
+        classes = [str(i) for i in list(ontology.classes())] if not suggest_ontology else []
+        relations = ontology.object_properties() if not suggest_ontology else {}
+
 
         if 'mapping' in instance:
             instance['mapping'].clear()
@@ -143,7 +152,11 @@ def init_instance_ontology(id):
         try:
             instance_model = InstanceModel(**instance)
             mongo.db.instances.update_one(query, {
-                "$set": {"mapping": instance['mapping'], "relations": instance['relations'], "classes_to_map": []}})
+                "$set": {
+                    "mapping": instance['mapping'],
+                    "suggest_ontology": suggest_ontology,
+                    "relations": instance['relations'],
+                    "classes_to_map": []}})
             return jsonify(successful=True, instance=instance_model.dict())
         except Exception as ex:
             return jsonify(successful=False, error=str(ex)), 400

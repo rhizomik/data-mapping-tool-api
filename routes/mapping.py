@@ -36,7 +36,13 @@ def generate_mapping_config():
             yaml += transform.add_mapping(element_split[-1].lower())
             yaml += transform.init_sources()
             yaml += transform.add_source(f"{instance['mapping'][element]['fileSelected']}")
-            yaml += transform.add_simple_subject(f"bigg:{element}", instance['mapping'][element]['subject'])
+            if not 'suggest_ontology' in instance:
+                prefix = 'bigg:'
+                yaml += transform.add_simple_subject(f"{prefix + element}", instance['mapping'][element]['subject'])
+            elif not instance['suggest_ontology']:
+                prefix = 'bigg:'
+                yaml += transform.add_simple_subject(f"{prefix + element}", instance['mapping'][element]['subject'])
+
             mapping_element = instance['mapping'][element]
 
             first_time = False

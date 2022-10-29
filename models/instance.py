@@ -14,4 +14,5 @@ class InstanceModel(BaseModel):
     mapping: dict = Field(default={})
     relations: dict = Field(default={})
     classes_to_map: list = Field(default=[])
-    current_ontology: str
+    current_ontology: str = Field(default="")
+    suggest_ontology: bool
