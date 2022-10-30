@@ -73,12 +73,6 @@ def edit_instance(id):
         if instance:
             instance.update(**request.json)
 
-            for _class in instance['classes_to_map']:
-                if 'mapping' not in instance:
-                    instance.update({"mapping": {}})
-                instance['mapping'].update(
-                    {_class: {"status": False, "fileSelected": instance['filenames'][0], "columns": {}}})
-
             try:
                 instance = InstanceModel(**instance)
                 mongo.db.instances.update_one({"_id": ObjectId(id)}, {"$set": instance.dict()})
