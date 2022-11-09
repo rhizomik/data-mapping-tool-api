@@ -1,5 +1,12 @@
+import cgi
 import datetime
+import os
 
+from py4j.java_gateway import launch_gateway, JavaGateway
+from urllib.request import urlopen, urlretrieve
+
+import requests
+import tempfile
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -195,3 +202,40 @@ def download_ontology(id):
         return jsonify(data=get_file(ontology_instance['file_id']).getvalue())
 
     return jsonify(error="No access to file"), 401
+
+
+@ontology_router.route("/create/remote/<vocab>", methods=["GET"])
+@jwt_required()
+def create_ontology_from_remote_source(vocab):
+    identity = get_jwt_identity()
+    url = "https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab=" + vocab
+
+    response = requests.get(url, allow_redirects=True)
+
+    if response.status_code == 200:
+        json_response = response.json()
+        url_to_download = json_response['versions'][0]['fileURL']
+        response = requests.get(url_to_download, allow_redirects=True)
+        response_converter = requests.post("https://www.ldf.fi/service/owl-converter/", allow_redirects=True,
+                                           data={'onto': response.content, 'to': 'owlxml'})
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmp_filename = tmpdirname + "/" + "ontology.owl"
+            with open (tmp_filename, "wb") as file:
+                file.write(response_converter.content)
+
+            with open(tmp_filename, "rb") as file:
+                _create_ontology_from_file(file, "vocab.owl", identity, "vocab")
+                return jsonify(successful=True)
+
+
+
+
+
+
+
+
+
+
+
+
