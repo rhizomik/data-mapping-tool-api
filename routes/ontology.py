@@ -1,6 +1,7 @@
 import cgi
 import datetime
 import os
+from urllib.parse import urlparse, unquote
 
 from py4j.java_gateway import launch_gateway, JavaGateway
 from urllib.request import urlopen, urlretrieve
@@ -21,6 +22,7 @@ ontology_router = Blueprint('ontology', __name__)
 @ontology_router.route("/<id>/classes", methods=["GET"])
 @jwt_required()
 def get_classes(id):
+    print(id)
     ontology = define_ontology(id)
     return jsonify(data=[{"label": str(i), "value": str(i)} for i in list(ontology.classes())])
 
@@ -102,7 +104,8 @@ def _create_ontology_from_file(file, filename, identity, ontology_name):
                                    createdBy=identity, createdAt=datetime.datetime.utcnow(),
                                    visibility=VisibilityEnum.private)
 
-    mongo.db.ontologies.insert_one(ontology_model.dict())
+    _id = mongo.db.ontologies.insert_one(ontology_model.dict())
+    return str(_id.inserted_id)
 
 
 @ontology_router.route("/<ontology>", methods=["POST"])
@@ -114,9 +117,9 @@ def create_ontology(ontology):
         return jsonify(error="No file attached."), 400
 
     file = request.files['file']
-    _create_ontology_from_file(file, file.filename, identity, ontology)
+    id_ontology = _create_ontology_from_file(file, file.filename, identity, ontology)
 
-    return jsonify(successful=True)
+    return jsonify({"successful": True, "id": id_ontology})
 
 
 @ontology_router.route("/", methods=["GET"])
@@ -204,6 +207,10 @@ def download_ontology(id):
     return jsonify(error="No access to file"), 401
 
 
+def __determine_url_path(url):
+    return unquote(urlparse(url).path.split("/")[-1])
+
+
 @ontology_router.route("/create/remote/<vocab>", methods=["GET"])
 @jwt_required()
 def create_ontology_from_remote_source(vocab):
@@ -215,27 +222,26 @@ def create_ontology_from_remote_source(vocab):
     if response.status_code == 200:
         json_response = response.json()
         url_to_download = json_response['versions'][0]['fileURL']
+        filename = os.path.basename(__determine_url_path(url_to_download))
+        filename_extension = filename.split('.')[1]
+        filename_no_extension = filename.split('.')[0]
         response = requests.get(url_to_download, allow_redirects=True)
-        response_converter = requests.post("https://www.ldf.fi/service/owl-converter/", allow_redirects=True,
-                                           data={'onto': response.content, 'to': 'owlxml'})
 
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_filename = tmpdirname + "/" + "ontology.owl"
-            with open (tmp_filename, "wb") as file:
-                file.write(response_converter.content)
+        if filename_extension == "n3":
+            conversion_from = "n3"
+        elif filename_extension == "ttl":
+            conversion_from = "ttl"
+        else:
+            return 500, "No format supported " + filename_extension
 
-            with open(tmp_filename, "rb") as file:
-                _create_ontology_from_file(file, "vocab.owl", identity, "vocab")
-                return jsonify(successful=True)
+        with tempfile.TemporaryDirectory() as tmp_dir_name:
+            tmp_filename = tmp_dir_name + "/" + filename
+            with open(tmp_filename, "wb") as file:
+                file.write(response.content)
 
+            os.system("python rdfconvert/rdfconvert.py {} --from {} --to nt > {}.owl"
+                      .format(tmp_filename, conversion_from, filename_no_extension))
 
-
-
-
-
-
-
-
-
-
-
+            with open(filename_no_extension+".owl", "rb") as file:
+                id_ontology = _create_ontology_from_file(file, vocab + ".owl", identity, vocab)
+                return jsonify({"successful": True, "id": id_ontology})
