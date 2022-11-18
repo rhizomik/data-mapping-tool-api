@@ -39,6 +39,7 @@ def get_instance(id):
         if 'Admin' in user['roles']:
             return jsonify(successful=True, data=parse_json(mongo.db.instances.find_one({"_id": ObjectId(id)})))
         else:
+            print(parse_json(mongo.db.instances.find_one({"_id": ObjectId(id), "createdBy": identity})))
             return jsonify(successful=True,
                            data=parse_json(mongo.db.instances.find_one({"_id": ObjectId(id), "createdBy": identity})))
     return jsonify(successful=False), 401
@@ -112,7 +113,7 @@ def init_instance_ontology(id):
     query = {"_id": ObjectId(id)} if 'Admin' in user['roles'] else {"_id": ObjectId(id), "createdBy": identity}
     instance = mongo.db.instances.find_one(query)
 
-    suggest_ontology = request.json['suggest_ontology']
+    suggest_ontology = request.json['suggest_ontology'] if 'suggest_ontology' in request.json else False
     if not suggest_ontology:
         ontology = define_ontology(request.json['ontology_id'])
 
