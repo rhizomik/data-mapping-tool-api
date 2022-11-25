@@ -1,9 +1,14 @@
+import os
+import tempfile
 from io import StringIO
+from typing import Dict
 
 import numpy as np
 import pandas as pd
 from flask import Blueprint, request, jsonify
+from tableschema import Table, infer
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
 
 from database import mongo
 from utils.utils import allowed_files
@@ -13,9 +18,9 @@ files_router = Blueprint('files', __name__)
 ALLOWED_EXTENSIONS = ['csv']
 
 
-def __save_file(file, filename, identity):
+def __save_file(file, filename, identity, inference):
     if file and allowed_files(filename=filename, allowed_extensions=ALLOWED_EXTENSIONS):
-        mongo.save_file(filename=filename, fileobj=file, kwargs={"owner": identity})
+        mongo.save_file(filename=filename, fileobj=file, kwargs={"owner": identity, "inference": inference})
 
 
 @files_router.route("/upload", methods=["POST"])
@@ -26,8 +31,12 @@ def upload_file():
 
     file = request.files['file']
     identity = get_jwt_identity()
-    __save_file(file, file.filename,identity)
-
+    handle, output = tempfile.mkstemp(suffix=".csv")
+    with os.fdopen(handle, "wb") as f:
+        f.write(file.read())
+    inference = infer(output)
+    file.stream.seek(0)
+    __save_file(file, file.filename, identity, inference['fields'])
     return jsonify(successful=True)
 
 
