@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 from io import StringIO
@@ -11,6 +12,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 
 from database import mongo
+from models.inference import InferenceModel, FieldInfo
 from utils.utils import allowed_files
 
 files_router = Blueprint('files', __name__)
@@ -35,6 +37,12 @@ def upload_file():
     with os.fdopen(handle, "wb") as f:
         f.write(file.read())
     inference = infer(output)
+    body = {
+        "filename": file.filename,
+        "inferences": inference['fields']
+    }
+    inferences = InferenceModel(**body)
+    mongo.db.inferences.insert_one(inferences.dict())
     file.stream.seek(0)
     __save_file(file, file.filename, identity, inference['fields'])
     return jsonify(successful=True)
@@ -62,4 +70,16 @@ def get_columns(filename):
         df = pd.read_csv(StringIO(file_str), sep=',')
         df = df.astype(object).replace(np.nan, 'None')
         return jsonify(columns=list(df.columns), sample=df.head(25).to_dict(orient="records"))
+    return jsonify(error="No access to file"), 401
+
+
+@files_router.route("/inferences/<filename>", methods=["GET"])
+@jwt_required()
+def get_inferences(filename):
+    identity = get_jwt_identity()
+
+    has_access = mongo.db.fs.files.find_one({"kwargs.owner": identity, "filename": filename})
+    if has_access:
+        inferences = mongo.db.inferences.find_one({'filename': filename})
+        return jsonify(inferences['inferences'])
     return jsonify(error="No access to file"), 401
