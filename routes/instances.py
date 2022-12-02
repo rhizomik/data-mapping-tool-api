@@ -39,7 +39,6 @@ def get_instance(id):
         if 'Admin' in user['roles']:
             return jsonify(successful=True, data=parse_json(mongo.db.instances.find_one({"_id": ObjectId(id)})))
         else:
-            print(parse_json(mongo.db.instances.find_one({"_id": ObjectId(id), "createdBy": identity})))
             return jsonify(successful=True,
                            data=parse_json(mongo.db.instances.find_one({"_id": ObjectId(id), "createdBy": identity})))
     return jsonify(successful=False), 401

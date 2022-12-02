@@ -7,6 +7,7 @@ class FieldInfo(BaseModel):
     name: str
     type: str
     format: str
+    annotation: str | None = None
 
 
 class InferenceModel(BaseModel):

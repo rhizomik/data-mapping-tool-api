@@ -83,3 +83,19 @@ def get_inferences(filename):
         inferences = mongo.db.inferences.find_one({'filename': filename})
         return jsonify(inferences['inferences'])
     return jsonify(error="No access to file"), 401
+
+
+@files_router.route("/inferences/<filename>", methods=["POST"])
+@jwt_required()
+def update_inferences(filename):
+    identity = get_jwt_identity()
+    has_access = mongo.db.fs.files.find_one({"kwargs.owner": identity, "filename": filename})
+    if has_access:
+        body = {
+            "filename": filename,
+            "inferences": request.json["inferences"]
+        }
+        inference_model = InferenceModel(**body)
+        mongo.db.inferences.update_one({'filename': filename}, {"$set": inference_model.dict()})
+        return jsonify(inference_model.dict())
+    return jsonify(error="No access to file"), 401

@@ -48,7 +48,6 @@ def generate_mapping_config():
             first_time = False
 
             # Property objects
-            print(mapping_element['columns'])
             for key, value in mapping_element['columns'].items():
                 if not first_time:
                     yaml += transform.init_predicate_object()

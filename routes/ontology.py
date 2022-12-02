@@ -3,6 +3,8 @@ import datetime
 import os
 from urllib.parse import urlparse, unquote
 
+from owlready2 import default_world
+import owlready2 as owl
 from py4j.java_gateway import launch_gateway, JavaGateway
 from urllib.request import urlopen, urlretrieve
 
@@ -22,7 +24,6 @@ ontology_router = Blueprint('ontology', __name__)
 @ontology_router.route("/<id>/classes", methods=["GET"])
 @jwt_required()
 def get_classes(id):
-    print(id)
     ontology = define_ontology(id)
     return jsonify(data=[{"label": str(i), "value": str(i)} for i in list(ontology.classes())])
 
@@ -245,3 +246,21 @@ def create_ontology_from_remote_source(vocab):
             with open(filename_no_extension+".owl", "rb") as file:
                 id_ontology = _create_ontology_from_file(file, vocab + ".owl", identity, vocab)
                 return jsonify({"successful": True, "id": id_ontology})
+
+
+@ontology_router.route("/mua/<vocab>", methods=["GET"])
+@jwt_required()
+def get_measure_ontology_details(vocab):
+    owl.onto_path.append("/data/")
+    go = owl.get_ontology("data/om.owl").load()
+
+    a = list(default_world.sparql("""
+               SELECT (?x AS ?nb)
+               { 
+                    ?x a owl:Class .                            
+                                   }
+        """))
+    classes = [str(x[0]) for x in a]
+    classes = [x for x in classes if x.startswith('om.') and '(' not in x and '|' not in x and vocab in x]
+
+    return jsonify({"classes": classes})
