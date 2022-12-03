@@ -264,3 +264,4 @@ def get_measure_ontology_details(vocab):
     classes = [x for x in classes if x.startswith('om.') and '(' not in x and '|' not in x and vocab in x]
 
     return jsonify({"classes": classes})
+

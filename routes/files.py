@@ -99,3 +99,26 @@ def update_inferences(filename):
         mongo.db.inferences.update_one({'filename': filename}, {"$set": inference_model.dict()})
         return jsonify(inference_model.dict())
     return jsonify(error="No access to file"), 401
+
+
+@files_router.route("/keys/<filename>", methods=["GET"])
+@jwt_required()
+def get_keys(filename):
+    identity = get_jwt_identity()
+
+    has_access = mongo.db.fs.files.find_one({"kwargs.owner": identity, "filename": filename})
+    if has_access:
+        file = mongo.send_file(filename=filename)
+        file_str = file.response.file.read().decode('utf-8')
+        df = pd.read_csv(StringIO(file_str), sep=',')
+        df = df.astype(object).replace(np.nan, 'None')
+        unique_columns_set = set()
+        for name, values in df.iteritems():
+            unique_columns_set.add(name) if len(values) == len(set(values)) else None
+
+        response = dict()
+        response['columns'] = list(unique_columns_set)
+
+        return jsonify(response)
+    return jsonify(error="No access to file"), 401
+
