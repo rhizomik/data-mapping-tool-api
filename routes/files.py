@@ -6,6 +6,7 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+from bson import json_util
 from flask import Blueprint, request, jsonify
 from tableschema import Table, infer
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -13,6 +14,7 @@ from werkzeug.utils import secure_filename
 
 from database import mongo
 from models.inference import InferenceModel, FieldInfo
+from models.key import KeyModel
 from utils.utils import allowed_files
 
 files_router = Blueprint('files', __name__)
@@ -101,6 +103,33 @@ def update_inferences(filename):
     return jsonify(error="No access to file"), 401
 
 
+@files_router.route("/key/<filename>", methods=["POST"])
+@jwt_required()
+def update_primary_key(filename):
+    identity = get_jwt_identity()
+    has_access = mongo.db.fs.files.find_one({"kwargs.owner": identity, "filename": filename})
+    if has_access:
+        body = {
+            "filename": filename,
+            "key": request.json["key"] if "key" in request.json else None
+        }
+        key_model = KeyModel(**body)
+        mongo.db.keys.update_one({'filename': filename}, {"$set": key_model.dict()}, upsert=True)
+        return jsonify(key_model.dict())
+    return jsonify(error="No access to file"), 401
+
+
+@files_router.route("/key/<filename>", methods=["GET"])
+@jwt_required()
+def get_primary_key(filename):
+    identity = get_jwt_identity()
+    has_access = mongo.db.fs.files.find_one({"kwargs.owner": identity, "filename": filename})
+    if has_access:
+        instance = mongo.db.keys.find_one({"filename": filename})
+        return jsonify(instance["key"])
+    return jsonify(error="No access to file"), 401
+
+
 @files_router.route("/keys/<filename>", methods=["GET"])
 @jwt_required()
 def get_keys(filename):
@@ -114,7 +143,7 @@ def get_keys(filename):
         df = df.astype(object).replace(np.nan, 'None')
         unique_columns_set = set()
         for name, values in df.iteritems():
-            unique_columns_set.add(name) if len(values) == len(set(values)) else None
+            unique_columns_set.add(name.strip()) if len(values) == len(set(values)) else None
 
         response = dict()
         response['columns'] = list(unique_columns_set)
