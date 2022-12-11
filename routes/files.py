@@ -15,6 +15,7 @@ from werkzeug.utils import secure_filename
 from database import mongo
 from models.inference import InferenceModel, FieldInfo
 from models.key import KeyModel
+from utils.subtypes import infere_sub_type
 from utils.utils import allowed_files
 
 files_router = Blueprint('files', __name__)
@@ -25,6 +26,13 @@ ALLOWED_EXTENSIONS = ['csv']
 def __save_file(file, filename, identity, inference):
     if file and allowed_files(filename=filename, allowed_extensions=ALLOWED_EXTENSIONS):
         mongo.save_file(filename=filename, fileobj=file, kwargs={"owner": identity, "inference": inference})
+
+
+def __get_subtype(inference, values):
+    sub_type = None
+    if inference['type'] == 'string':
+        sub_type = infere_sub_type(values)
+    inference['subtype'] = sub_type
 
 
 @files_router.route("/upload", methods=["POST"])
@@ -38,13 +46,19 @@ def upload_file():
     handle, output = tempfile.mkstemp(suffix=".csv")
     with os.fdopen(handle, "wb") as f:
         f.write(file.read())
+    csv_pandas = pd.read_csv(output)
+
     inference = infer(output)
     body = {
         "filename": file.filename,
         "inferences": inference['fields']
     }
+
+    for inference_value in inference['fields']:
+        __get_subtype(inference_value, csv_pandas.loc[:, inference_value['name']])
+
     inferences = InferenceModel(**body)
-    mongo.db.inferences.insert_one(inferences.dict())
+    mongo.db.inferences.update_one({'filename': file.filename}, {"$set": inferences.dict()}, upsert=True)
     file.stream.seek(0)
     __save_file(file, file.filename, identity, inference['fields'])
     return jsonify(successful=True)

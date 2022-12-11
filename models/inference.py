@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class FieldInfo(BaseModel):
     name: str
     type: str
+    subtype: str | None = None
     format: str
     annotation: str | None = None
 
