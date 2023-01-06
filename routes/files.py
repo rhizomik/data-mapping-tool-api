@@ -6,7 +6,7 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
-from bson import json_util
+from bson import json_util, ObjectId
 from flask import Blueprint, request, jsonify
 from tableschema import Table, infer
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -14,9 +14,10 @@ from werkzeug.utils import secure_filename
 
 from database import mongo
 from models.inference import InferenceModel, FieldInfo
+from models.instance import InstanceModel
 from models.key import KeyModel
 from utils.subtypes import infere_sub_type
-from utils.utils import allowed_files
+from utils.utils import allowed_files, get_user_by_username
 
 files_router = Blueprint('files', __name__)
 

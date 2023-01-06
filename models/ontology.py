@@ -18,3 +18,4 @@ class OntologyModel(BaseModel):
     createdAt: datetime.datetime
     createdBy: EmailStr
     visibility: VisibilityEnum
+    prefix: str

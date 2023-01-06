@@ -1,12 +1,14 @@
 # The aim of this fragment of code is generate the patterns that allow us to build a yarrrml file.
 # To do it I follow the structures from https://rml.io/yarrrml/.
 
-PREFIXES = {"dbo": "https://dbpedia.org/ontology/", "bigg": "https://bigg-project.eu/ontology#"}
+GLOBAL_PREFIXES = {"dbo": "https://dbpedia.org/ontology/", "bigg": "https://bigg-project.eu/ontology#"}
 
 
 def add_prefixes(prefixes=None):
     if prefixes is None:
-        prefixes = PREFIXES
+        prefixes = GLOBAL_PREFIXES
+    else:
+        prefixes.update(GLOBAL_PREFIXES)
 
     string = "prefixes:\n"
     for key, value in prefixes.items():

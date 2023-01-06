@@ -16,6 +16,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from database import mongo
 from models.ontology import OntologyModel, VisibilityEnum
+from models.prefix import PrefixModel
+from utils.prefix import create_or_return_prefix
 from utils.utils import get_user_by_username, parse_json, remove_file, get_file, define_ontology
 
 ontology_router = Blueprint('ontology', __name__)
@@ -97,13 +99,13 @@ def get_ontology_view(id):
     return jsonify(classes=classes, relations=relations)
 
 
-def _create_ontology_from_file(file, filename, identity, ontology_name):
+def _create_ontology_from_file(file, filename, identity, ontology_name, prefix = None):
 
     file_id = mongo.save_file(filename=filename, fileobj=file, kwargs={"owner": identity})
 
     ontology_model = OntologyModel(filename=filename, file_id=str(file_id), ontology_name=ontology_name,
                                    createdBy=identity, createdAt=datetime.datetime.utcnow(),
-                                   visibility=VisibilityEnum.private)
+                                   visibility=VisibilityEnum.private, prefix=str(prefix))
 
     _id = mongo.db.ontologies.insert_one(ontology_model.dict())
     return str(_id.inserted_id)
@@ -222,6 +224,9 @@ def create_ontology_from_remote_source(vocab):
 
     if response.status_code == 200:
         json_response = response.json()
+        prefix = json_response['prefix']
+        prefix_url = json_response['nsp']
+        id_returned = create_or_return_prefix({'prefix': prefix, 'url': prefix_url})
         url_to_download = json_response['versions'][0]['fileURL']
         filename = os.path.basename(__determine_url_path(url_to_download))
         filename_extension = filename.split('.')[1]
@@ -244,7 +249,7 @@ def create_ontology_from_remote_source(vocab):
                       .format(tmp_filename, conversion_from, filename_no_extension))
 
             with open(filename_no_extension+".owl", "rb") as file:
-                id_ontology = _create_ontology_from_file(file, vocab + ".owl", identity, vocab)
+                id_ontology = _create_ontology_from_file(file, vocab + ".owl", identity, vocab, id_returned)
                 return jsonify({"successful": True, "id": id_ontology})
 
 

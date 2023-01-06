@@ -2,6 +2,9 @@ from typing import List, Dict
 
 from pydantic import BaseModel
 
+class PrefixInfoModel(BaseModel):
+    prefix: str
+    uri: str
 
 class FieldInfo(BaseModel):
     name: str
@@ -9,6 +12,7 @@ class FieldInfo(BaseModel):
     subtype: str | None = None
     format: str
     annotation: str | None = None
+    prefix: PrefixInfoModel | None
 
 
 class InferenceModel(BaseModel):

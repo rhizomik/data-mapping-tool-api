@@ -16,6 +16,7 @@ from routes.files import files_router
 from routes.instances import instances_router
 from routes.mapping import mapping_router
 from routes.ontology import ontology_router
+from routes.prefixes import prefixs_router
 from routes.users import users_router
 
 
@@ -47,4 +48,5 @@ def create_app():
     app.register_blueprint(mapping_router, url_prefix='/mapping')
     app.register_blueprint(cleaning_router, url_prefix='/cleaning')
     app.register_blueprint(dataverse_router, url_prefix='/dataverses')
+    app.register_blueprint(prefixs_router, url_prefix='/prefix')
     return app
