@@ -33,6 +33,15 @@ def add_source(source: str, delimiter='.'):
     source_extension = source.split(delimiter)[-1]
     return f"      - [ '{source}~{source_extension}' ]\n"
 
+def add_type(column_name: str):
+    return f"    t: {column_name}\n"
+
+def add_sub_type(column_name: str):
+    return f"    t: {column_name}\n"
+
+def add_annotation(prefix: str, inference_annotation_name: str):
+    return f"    a: {prefix.upper()}:{prefix.upper()}.{inference_annotation_name}\n"
+
 
 def add_simple_subject(subject_name: str, column_name: str):
     return f"    s: {subject_name}/$({column_name})\n"
