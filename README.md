@@ -1,6 +1,6 @@
 # Data Mapping Tool
 
-This repository is the `backend` part of the Data Mapping Tool Project.
+This repository is the `backend` part of the Data Mapping Tool Project. You can check the front-end side at: https://github.com/jorgechp/data-mapping-tool-client
 
 The project aims to make friendly the process of mapping data using a single ontology or multiple ones. In our case, the
 project uses the [BIGG](https://www.bigg-project.eu/) ontology as background.
