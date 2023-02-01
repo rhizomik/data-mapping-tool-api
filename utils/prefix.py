@@ -7,7 +7,7 @@ def create_or_return_prefix(prefix_body):
     if results is None:
         prefix = PrefixModel(**prefix_body)
         insertion = mongo.db.prefix.insert_one(prefix.dict())
-        inserted_id = insertion['inserted_id']
+        inserted_id = insertion.inserted_id
     else:
         inserted_id = results['_id']
     return inserted_id
