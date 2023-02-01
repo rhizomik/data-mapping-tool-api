@@ -41,7 +41,7 @@ def generate_mapping_config():
     identity = get_jwt_identity()
     user = get_user_by_username(identity)
     req = request.json
-    if '_id' in req.keys() and 'classes' in req.keys() and req['classes']:
+    if '_id' in req.keys() and 'classes' in req.keys() :
         query = {'_id': ObjectId(req['_id'])} if 'Admin' in user['roles'] else {'_id': ObjectId(req['_id']), "createdBy": identity}
         instance = mongo.db.instances.find_one(query, {"_id": 0})
         assigned_ontology = mongo.db.ontologies.find_one({'_id': ObjectId(instance['current_ontology'])})
@@ -74,8 +74,9 @@ def generate_mapping_config():
             yaml += transform.init_sources()
             yaml += transform.add_source(f"{instance['mapping'][element]['fileSelected']}")
             prefix = element_split[0]
-            column_name = instance['mapping'][element]['subject']
+
             if 'mapping' in instance and element in instance['mapping'] and 'subject' in instance['mapping'][element]:
+                column_name = instance['mapping'][element]['subject']
                 yaml += transform.add_simple_subject(f"{element}", column_name)
             # if not 'suggest_ontology' in instance:
             #     prefix = 'bigg:'
@@ -83,21 +84,21 @@ def generate_mapping_config():
             # elif not instance['suggest_ontology']:
             #     prefix = 'bigg:'
             #     yaml += transform.add_simple_subject(f"{prefix + element}", instance['mapping'][element]['subject'])
-            if inferences:
-                for inference in inferences['inferences']:
-                    if inference['name'] == column_name:
-                        inference_type = inference['type']
-                        inference_sub_type = inference['subtype']
-                        inference_annotation = inference['annotation']
-                        if inference_type:
-                            yaml += transform.add_type(inference_type)
-                        if inference_sub_type:
-                            yaml += transform.add_sub_type(inference_sub_type)
-                        if inference_annotation:
-                            inference_annotation_splitted = inference_annotation.split('.')
-                            inference_annotation_prefix = inference_annotation_splitted[0]
-                            inference_annotation_name = inference_annotation_splitted[1]
-                            yaml += transform.add_annotation(inference_annotation_prefix, inference_annotation_name)
+                if inferences:
+                    for inference in inferences['inferences']:
+                        if inference['name'] == column_name:
+                            inference_type = inference['type']
+                            inference_sub_type = inference['subtype']
+                            inference_annotation = inference['annotation']
+                            if inference_type:
+                                yaml += transform.add_type(inference_type)
+                            if inference_sub_type:
+                                yaml += transform.add_sub_type(inference_sub_type)
+                            if inference_annotation:
+                                inference_annotation_splitted = inference_annotation.split('.')
+                                inference_annotation_prefix = inference_annotation_splitted[0]
+                                inference_annotation_name = inference_annotation_splitted[1]
+                                yaml += transform.add_annotation(inference_annotation_prefix, inference_annotation_name)
 
             mapping_element = instance['mapping'][element]
 
