@@ -3,6 +3,7 @@ import os
 import tempfile
 from io import StringIO
 
+import owlready2
 import pymongo
 from bson import ObjectId
 from owlready2 import World
@@ -33,7 +34,7 @@ def remove_file(file_id):
     mongo.db.fs.files.delete_one({"_id": ObjectId(file_id)})
 
 
-def define_ontology(ontology_id):
+def define_ontology(ontology_id) -> World | bool:
     # https://owlready2.readthedocs.io/en/latest/world.html
 
     ontology_record = mongo.db.ontologies.find_one({"_id": ObjectId(ontology_id)})
@@ -43,7 +44,12 @@ def define_ontology(ontology_id):
     with tempfile.TemporaryDirectory(dir='output') as temp_dir:
         with open(os.path.join(temp_dir, ontology_file['filename'].split('.')[0]), 'w') as file:
             file.write(ontology_chunk.getvalue())
-            ontology_instance.get_ontology(file.name).load()
+            try:
+                ontology_instance.get_ontology(file.name).load()
+            except owlready2.base.OwlReadyOntologyParsingError as e:
+                print(e)
+                return False
+
     return ontology_instance
 
 

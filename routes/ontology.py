@@ -76,6 +76,9 @@ def get_relations(id):
     relations = {}
     ontology = define_ontology(id)
 
+    if ontology is False:
+        return jsonify(successful=False), 500
+
     for i in ontology.object_properties():
         if i.domain and i.range:
             if str(i.domain[0]) in req['classes'] and str(i.range[0]) in req['classes']:
