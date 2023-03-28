@@ -4,14 +4,14 @@ from pydantic import BaseModel
 
 class PrefixInfoModel(BaseModel):
     prefix: str
-    uri: str
+    uri: List[str] | str
 
 class FieldInfo(BaseModel):
     name: str
     type: str
     subtype: str | None = None
     format: str
-    annotation: str | None = None
+    annotation: str | List[str] | None = None
     prefix: PrefixInfoModel | None
 
 
